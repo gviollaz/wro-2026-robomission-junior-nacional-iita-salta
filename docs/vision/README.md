@@ -5,340 +5,250 @@
 > **"The usage of cameras is limited to the age groups Junior and Senior."**
 > — WRO 2026 RoboMission General Rules, sección 5.2 Sensors
 
-Las cámaras están **permitidas en Junior y Senior**, pero **prohibidas en Elementary**. Este documento es exclusivo para el equipo Junior de IITA.
+Las cámaras están **permitidas en Junior y Senior**, pero **prohibidas en Elementary**.
 
-## Índice
+## 1. Comparativa de cámaras (4 opciones)
 
-| Sección | Contenido |
-|---------|-----------|
-| 1 | Comparativa: HuskyLens vs OpenMV vs Pixy2 |
-| 2 | Recomendación para IITA Junior |
-| 3 | Conexión física con SPIKE Prime |
-| 4 | Comunicación UART y protocolo |
-| 5 | Configuración y entrenamiento de la cámara |
-| 6 | Programación en Pybricks |
-| 7 | Ubicación, montaje e iluminación |
-| 8 | Qué hacen los equipos ganadores |
-| 9 | Estrategias para misiones WRO |
-| 10 | Problemas comunes y soluciones |
-
----
-
-## 1. Comparativa de cámaras
-
-### Las tres opciones principales
-
-| Característica | HuskyLens | OpenMV H7+ | Pixy2 |
-|---------------|-----------|------------|-------|
-| **Fabricante** | DFRobot | OpenMV LLC | Charmed Labs |
-| **Precio** | ~$55 USD | ~$65 USD ($85 con display) | ~$60 USD |
-| **Procesador** | Kendryte K210 (RISC-V + NPU) | STM32H743 (ARM Cortex-M7) | NXP LPC4330 (ARM Cortex-M4) |
-| **Resolución** | 320x240 | 640x480 (configurable) | 316x208 |
-| **FPS** | 11-30 (según algoritmo) | 30-85 (según algoritmo) | 60 |
-| **Comunicación** | UART / I2C | UART / SPI / I2C | UART / SPI / I2C |
-| **Programación** | Menú on-screen (low-code) | MicroPython (IDE propia) | Arduino/Python libs |
-| **ML/AI** | Sí (clasificación objetos built-in) | Sí (TensorFlow Lite) | No (solo color/forma) |
-| **Display integrado** | Sí (2", color, live feed) | No (shield opcional ~$20) | No |
-| **Funciones built-in** | 7 (color, línea, cara, objeto, tag, clasificación, tracking) | Ilimitadas (programable) | 3 (color, línea, código) |
-| **Facilidad de uso** | ⭐⭐⭐⭐⭐ Muy fácil | ⭐⭐ Requiere programar | ⭐⭐⭐⭐ Fácil |
-| **Flexibilidad** | ⭐⭐ Limitada a funciones built-in | ⭐⭐⭐⭐⭐ Total (Python) | ⭐⭐ Limitada |
-| **Con SPIKE Prime** | Funciona (necesita 5V externo) | Funciona (con breakout board) | Funciona (UART directo) |
-| **Almacenamiento** | SD card (modelos aprendidos) | SD card (scripts + modelos) | Flash interna |
-
-### Funciones detalladas
-
-**HuskyLens** — 7 funciones built-in:
-1. Reconocimiento de color (blob tracking)
-2. Seguimiento de línea
-3. Reconocimiento facial
-4. Tracking de objetos (por forma)
-5. Reconocimiento de objetos (clasificación)
-6. Reconocimiento de tags (April Tags)
-7. Clasificación de objetos (ML)
-
-**OpenMV** — Funciones ilimitadas (programable en MicroPython):
-- Todo lo que HuskyLens hace, más:
-- Redes neuronales custom (TensorFlow Lite)
-- Visión estéreo (con 2 cámaras)
-- Lectura de códigos QR y de barras
-- Detección de bordes, esquinas, template matching
-- Acceso pixel por pixel
-- Histogramas de color
-- Filtros y transformaciones de imagen
-
-**Pixy2** — 3 funciones:
-1. Detección de color (signatures, hasta 7 colores)
-2. Seguimiento de línea (con intersecciones y códigos)
-3. Lectura de códigos de barras simples
+| Característica | HuskyLens | OpenMV H7+ | ESP32-CAM / LMS-ESP32 | Pixy2 |
+|---------------|-----------|------------|----------------------|-------|
+| **Precio** | ~$55 | ~$65-85 | ~$8-15 (CAM) / ~$40 (LMS-ESP32) | ~$60 |
+| **Procesador** | Kendryte K210 | STM32H743 (Cortex-M7) | Xtensa LX6/LX7 dual-core | NXP LPC4330 |
+| **Resolución** | 320×240 | 640×480 | 1600×1200 (OV2640) / 2MP (OV5640) | 316×208 |
+| **FPS real (procesando)** | 11-30 | 30-85 | 10-25 (MicroPython) / 30+ (Arduino) | 60 |
+| **WiFi** | ❌ No | ❌ No | ✅ Sí (802.11 b/g/n) | ❌ No |
+| **BLE** | ❌ No | ❌ No | ✅ Sí (BLE 4.2/5.0) | ❌ No |
+| **Comunicación con SPIKE** | UART/I2C (cable) | UART/SPI (cable) | **PUPRemote vía LPF2 (cable, emula sensor LEGO)** | UART/SPI |
+| **Programación** | Menú on-screen | MicroPython (IDE propia) | MicroPython / Arduino / ESP-IDF | Arduino/Python |
+| **ML/AI** | Sí (built-in) | Sí (TF Lite) | Sí (TF Lite Micro, ESP-NN) | No |
+| **Display integrado** | Sí (2") | No ($20 extra) | No (pero stream WiFi a PC/celular) | No |
+| **Facilidad de uso** | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ (con LMS-ESP32) | ⭐⭐⭐⭐ |
+| **Flexibilidad** | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (total) | ⭐⭐ |
+| **Alimentación** | 5V (problema con SPIKE) | 3.3V-5V | 3.3V-5V (LMS-ESP32 provee 5V) | 5V |
+| **Comunidad LEGO** | ⭐⭐⭐ Buena | ⭐⭐⭐⭐ Muy buena (WRO FE) | ⭐⭐⭐⭐⭐ Enorme (Arduino+LEGO) | ⭐⭐ |
 
 ---
 
-## 2. Recomendación para IITA Junior
+## 2. ESP32-CAM: la opción más versátil y económica
 
-### Opción A: HuskyLens (recomendada para empezar)
+### ¿Qué es?
 
-**Ventajas:**
-- No requiere programar la cámara (menú on-screen)
-- Display integrado muestra qué ve en tiempo real
-- Aprende colores/objetos con un botón (sin código)
-- Protocolo UART bien documentado
-- Más barata
+El ESP32-CAM es un módulo que combina un microcontrolador ESP32 con una cámara OV2640 (2 megapíxeles), WiFi, BLE, y slot para SD card, todo por ~$8-15 USD. Es la opción más barata con diferencia.
 
-**Desventajas:**
-- Necesita alimentación 5V externa (SPIKE da 3.3V, insuficiente → brownouts)
-- Interfaz de menú poco intuitiva
-- No se puede personalizar los algoritmos
-- Rendimiento inferior a OpenMV en condiciones de luz difíciles
+### Variantes populares
 
-**Ideal para:** Equipos que recién empiezan con visión, misiones simples de clasificación por color.
+| Módulo | Precio | Cámara | RAM PSRAM | Ventaja |
+|--------|--------|--------|-----------|---------|
+| AI-Thinker ESP32-CAM | ~$8 | OV2640 (2MP) | 4MB | La más barata, enorme comunidad |
+| XIAO ESP32S3 Sense | ~$15 | OV2640 (2MP) | 8MB | Más compacto, USB-C, ESP32-S3 (mejor AI) |
+| Freenove ESP32-S3-WROOM | ~$12 | OV2640 | 8MB | Buena documentación |
+| ESP32-CAM con OV5640 | ~$15 | OV5640 (5MP) | 4-8MB | Mejor calidad de imagen |
 
-### Opción B: OpenMV H7 (recomendada para equipos con experiencia Python)
+### La ventaja clave: WiFi para debugging en tiempo real
 
-**Ventajas:**
-- Totalmente programable en MicroPython
-- IDE propia con live feed en la PC (ves lo que ve la cámara)
-- Redes neuronales custom (TensorFlow Lite)
-- Mejor rendimiento en condiciones de luz variable
-- Acceso a cada pixel, histogramas, filtros
-- Comunidad WRO Future Engineers la usa extensamente
+Con las otras cámaras, para ver qué detecta la cámara hay que conectarla a la PC con cable USB. El robot no puede moverse mientras depurás.
 
-**Desventajas:**
-- Requiere programar la cámara por separado (IDE propia)
-- Más cara (especialmente con display)
-- Curva de aprendizaje más alta
-
-**Ideal para:** Equipos que quieren máximo rendimiento y ya manejan Python.
-
-### Opción C: Pixy2 (opción legacy, no recomendada para 2026)
-
-**Ventajas:**
-- Hardware robusto, 60 FPS
-- Buena detección de color por signatures
-- Protocolo SPI muy rápido
-
-**Desventajas:**
-- Sin ML/AI, sin clasificación
-- Software PixyMon requiere PC para configurar
-- No tan activo en desarrollo como las otras dos
-- No agrega funcionalidad que el sensor de color SPIKE no tenga (para color simple)
-
-**Recomendación IITA:** Empezar con HuskyLens. Si el equipo avanza y necesita más, migrar a OpenMV.
-
----
-
-## 3. Conexión física con SPIKE Prime
-
-### El problema de la alimentación
-
-El SPIKE Prime entrega 3.3V en los pines de datos del puerto. Las cámaras necesitan 5V (HuskyLens) o al menos 3.3V estable (OpenMV). La solución es usar un **breakout board con conversor buck DC-DC**.
-
-### Opción recomendada: SPIKE-OpenMV Breakout Board
-
-Esta placa (de AntonsMindstorms/WROBd) se conecta a un puerto del SPIKE y provee:
-- 5V estables desde la batería del hub (vaía M+ a 100% PWM)
-- Pines UART (TX/RX) para comunicación
-- Compatible con HuskyLens Y OpenMV
+Con ESP32-CAM:
+- La cámara **transmite video por WiFi a tu celular o laptop** mientras el robot se mueve
+- Podés ver exactamente qué ve, qué detecta, y por qué se confunde
+- No hay cables extra: el robot funciona 100% autónomo
+- Podés cambiar parámetros (umbrales de color, exposición) **desde el celular** sin tocar el robot
 
 ```
-SPIKE Hub                Breakout Board              Cámara
-┌────────┐   cable LPF2   ┌─────────────┐   4 cables  ┌─────────┐
-│ Puerto F │───────────▶│ Buck 5V    │─────────▶│ HuskyLens│
-│          │             │ UART TX/RX │            │ u OpenMV │
-└────────┘             └─────────────┘            └─────────┘
+                    WiFi (debugging/streaming)
+ESP32-CAM  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ▶  📱 Celular / 💻 Laptop
+    │                                            (ver lo que ve la cámara)
+    │ I2C / UART (datos: color, x, y)
+    ▼
+LMS-ESP32  ───── cable LPF2 ─────▶  SPIKE Prime Hub
+(puente)                              (lógica de misión)
 ```
 
-### Conexión HuskyLens (4 cables)
+### Conexión con SPIKE Prime via LMS-ESP32
 
-| Cable HuskyLens | Breakout Board | Función |
-|----------------|----------------|----------|
-| Rojo (5V) | 5V | Alimentación |
-| Negro (GND) | GND | Tierra |
-| Verde (TX) | RX | Datos cámara → hub |
-| Azul (RX) | TX | Datos hub → cámara |
+La placa **LMS-ESP32** de AntonsMindstorms es un ESP32 con conector LEGO LPF2 incorporado. Funciona como puente entre cualquier electrónica y el SPIKE:
 
-### Conexión OpenMV H7 (header directo)
+1. La ESP32-CAM procesa la imagen y obtiene: qué color, dónde está, qué tamaño
+2. Envía esos datos por I2C o UART a la LMS-ESP32
+3. La LMS-ESP32 usa **PUPRemote** para emular un sensor LEGO
+4. Desde Pybricks, se lee como si fuera un sensor más: `PUPDevice(Port.A)`
 
-La breakout board tiene header compatible con el pinout de OpenMV. Se enchufa directamente.
+**¿Por qué es más confiable que HuskyLens directo?**
+- La LMS-ESP32 provee 5V estables (no brownouts)
+- PUPRemote emula un sensor LEGO nativo → Pybricks lo ve sin hacks
+- La conexión es por cable LPF2 (el mismo que los motores LEGO) → ultra confiable
+- Si la comunicación falla, se detecta inmediatamente (no se queda colgada)
 
-### Sin breakout board (DIY con soldering)
+### Alternativa: todo en una sola ESP32
 
-Se puede soldar un cable LPF2 cortado a un conversor buck 3.3V→5V. Requiere habilidad de soldadura.
+Si usás la LMS-ESP32 directamente (sin ESP32-CAM separada), podés:
+- Conectar una cámara OV2640 directo a los GPIO de la LMS-ESP32
+- Todo el procesamiento + comunicación en una sola placa
+- Más compacto, menos cables
 
----
+Limitación: la LMS-ESP32 v2 tiene menos RAM (2MB) que una ESP32-CAM dedicada (4-8MB PSRAM), lo que limita la resolución procesable.
 
-## 4. Comunicación UART y protocolo
+### Programación de la ESP32-CAM
 
-### HuskyLens: protocolo binario
-
-HuskyLens usa un protocolo binario propietario sobre UART a 9600 baud (default). La biblioteca de AntonsMindstorms para SPIKE abstrae esto:
-
+**Con MicroPython (más fácil, compatible con el ecosistema IITA):**
 ```python
-# En LEGO MINDSTORMS Robot Inventor firmware
-from projects.mpy_robot_tools import pyhuskylens
+# En la ESP32-CAM (firmware MicroPython + camera module)
+import camera
+import network
+from machine import UART
 
-lens = pyhuskylens.HuskyLens(Port.F)
-lens.knock()  # Verificar conexión
+# Inicializar cámara
+camera.init(0, format=camera.JPEG, fb_location=camera.PSRAM)
+camera.framesize(camera.FRAME_QVGA)  # 320x240
 
-# Cambiar algoritmo
-lens.algorithm(pyhuskylens.COLOR_RECOGNITION)
+# WiFi para streaming/debugging
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+wifi.connect("IITA_Robot", "password")
 
-# Leer objetos detectados
-bloques = lens.get_blocks()
-for b in bloques:
-    print("ID:", b.ID, "X:", b.x, "Y:", b.y, "W:", b.width, "H:", b.height)
-```
-
-### OpenMV: protocolo custom
-
-OpenMV se programa con su propio IDE (OpenMV IDE). El script corre EN la cámara y envía datos por UART al SPIKE.
-
-**En la cámara (OpenMV IDE):**
-```python
-import sensor, image, time
-from pyb import UART
-
-sensor.reset()
-sensor.set_pixformat(sensor.RGB565)
-sensor.set_framesize(sensor.QVGA)  # 320x240
-sensor.skip_frames(time=2000)
-
-uart = UART(3, 115200)
-
-# Definir umbrales de color en LAB
-rojo_lab = (30, 100, 15, 127, 15, 127)
-azul_lab = (10, 50, -20, 20, -80, -20)
+# UART para enviar datos al LMS-ESP32
+uart = UART(1, baudrate=115200, tx=14, rx=15)
 
 while True:
-    img = sensor.snapshot()
-    blobs = img.find_blobs([rojo_lab, azul_lab], 
-                           pixels_threshold=100,
-                           area_threshold=100)
-    if blobs:
-        b = max(blobs, key=lambda x: x.pixels())
-        # Enviar: color_id, cx, cy, area
-        uart.write("%d,%d,%d,%d\n" % (b.code(), b.cx(), b.cy(), b.pixels()))
-    else:
-        uart.write("0,0,0,0\n")
-    time.sleep_ms(50)
+    img = camera.capture()
+    # Procesar imagen (detección de color, blob, etc.)
+    color_id, cx, cy = procesar_imagen(img)
+    # Enviar al SPIKE via LMS-ESP32
+    uart.write("%d,%d,%d\n" % (color_id, cx, cy))
 ```
 
-**En el SPIKE (Pybricks/MINDSTORMS):**
+**Con Arduino (más rápido, más librerías de visión):**
+```cpp
+#include "esp_camera.h"
+#include "img_converters.h"
+// Más librerías para procesamiento de imagen
+// Comunicación con LMS-ESP32 por Serial
+```
+
+### Web server integrado para debugging
+
 ```python
-# Leer datos de la cámara via UART
-data = uart.readline()
-if data:
-    parts = data.decode().strip().split(",")
-    color_id = int(parts[0])
-    cx = int(parts[1])
-    cy = int(parts[2])
-    area = int(parts[3])
+# La ESP32-CAM puede servir una página web con video en vivo
+# Accesible desde cualquier navegador: http://192.168.1.x
+# Mientras el robot corre su misión autónomamente
 ```
-
-### Nota sobre Pybricks
-
-A marzo 2026, Pybricks **no tiene soporte nativo de puerto serial UART** en sus APIs públicas. Las bibliotecas de cámara funcionan con:
-- LEGO MINDSTORMS Robot Inventor firmware (MicroPython)
-- SPIKE App v3 (Python)
-- PUPRemote (biblioteca de AntonsMindstorms para Pybricks vía hack de puerto)
-
-Si el equipo usa Pybricks, necesitará la biblioteca **PUPRemote** o cambiar a MINDSTORMS firmware para la cámara.
 
 ---
 
-## 5. Configuración y entrenamiento
+## 3. Recomendación para IITA Junior
 
-### HuskyLens: aprender colores
+### Decisión según nivel del equipo
 
-1. Encender HuskyLens (botón o alimentación)
-2. Seleccionar "Color Recognition" en el menú (rueda/botón)
-3. Apuntar al objeto de color deseado
-4. Mantener presionado el botón de aprendizaje hasta que aparezca el recuadro
-5. Soltar → color aprendido como ID 1
-6. Para otro color: presionar brevemente (no mantener) → cambia a "Learn Again"
-7. Repetir → ID 2, ID 3, etc.
-8. Guardar en SD card para no perder entre reinicios
+| Nivel | Recomendación | Por qué |
+|-------|--------------|---------|
+| **Recién empieza con visión** | HuskyLens + LMS-ESP32 | Menú visual, aprende con botón, sin programar cámara |
+| **Sabe Python básico** | ESP32-CAM + LMS-ESP32 | Barato, WiFi para debug, totalmente personalizable |
+| **Python avanzado** | OpenMV H7 + breakout board | Máximo rendimiento, IDE profesional, estándar WRO FE |
+| **Máxima versatilidad/presupuesto bajo** | LMS-ESP32 + cámara OV2640 | Todo integrado, WiFi, BLE, la más económica |
 
-### OpenMV: calibrar umbrales de color
+### Plan progresivo recomendado para IITA
 
-1. Abrir OpenMV IDE en la PC
-2. Conectar cámara por USB
-3. Ejecutar script de vista previa
-4. Usar Tools → Machine Vision → Threshold Editor
-5. Ajustar umbrales LAB hasta que solo el color deseado esté blanco
-6. Copiar umbrales al script
-
-### Pixy2: signatures
-
-1. Conectar Pixy2 por USB a PC
-2. Abrir PixyMon
-3. Apuntar al objeto, hacer clic en el color deseado
-4. Ajustar signature hasta que solo detecte el color deseado
-5. Guardar en flash
+1. **Empezar:** HuskyLens + LMS-ESP32 (plug-and-play, detecta colores en minutos)
+2. **Evolucionar:** ESP32-CAM (agrega WiFi debugging, scripts custom)
+3. **Competir:** OpenMV H7 si necesitan TF Lite o máxima velocidad
 
 ---
 
-## 6. Programación en Pybricks / SPIKE Python
+## 4. Conexión física con SPIKE Prime
 
-### Arquitectura recomendada
+### El problema de alimentación (aplica a TODAS las cámaras)
+
+SPIKE Prime entrega 3.3V en los pines de datos. Las cámaras necesitan 5V. La solución universal: **LMS-ESP32 breakout board** con conversor buck DC-DC.
 
 ```
-┌────────────────┐      UART       ┌────────────────┐
-│   Cámara        │ ─────────▶ │   SPIKE Prime   │
-│ (procesa imagen)│   datos      │ (lógica misión) │
-│                │  color,x,y   │                │
-└────────────────┘              └────────────────┘
+SPIKE Hub                LMS-ESP32 Board              Cámara
+┌────────┐   cable LPF2   ┌─────────────┐   cables    ┌──────────┐
+│ Puerto A │──────────────▶│ Buck 5V     │────────────▶│ HuskyLens│
+│          │               │ PUPRemote   │   I2C/UART  │ OpenMV   │
+│          │               │ ESP32 onboard│            │ ESP32-CAM│
+└────────┘               └─────────────┘              └──────────┘
 ```
 
-La cámara hace TODO el procesamiento de imagen. El SPIKE solo recibe datos simples (qué color, dónde está) y toma decisiones de movimiento.
+La LMS-ESP32 funciona como puente universal para CUALQUIER cámara. El SPIKE solo ve un "sensor" en el puerto.
+
+---
+
+## 5. Comunicación y protocolo
+
+### Con LMS-ESP32 + PUPRemote (recomendado para Pybricks)
+
+**En la LMS-ESP32 (o ESP32 con la cámara):**
+```python
+from pupremote import PUPRemoteSensor
+
+p = PUPRemoteSensor()
+p.add_channel('color', to_hub_fmt='BBhh')  # id, confianza, x, y
+
+while True:
+    color_id, conf, cx, cy = leer_camara()
+    p.update_channel('color', color_id, conf, cx, cy)
+    p.process()
+```
+
+**En Pybricks (SPIKE):**
+```python
+from pupremote_hub import PUPRemoteHub
+
+cam = PUPRemoteHub(Port.A)
+cam.add_channel('color', 'BBhh')
+
+while True:
+    datos = cam.call('color')
+    if datos:
+        color_id, conf, cx, cy = datos
+        print("Color:", color_id, "en x:", cx, "y:", cy)
+```
+
+### HuskyLens via LMS-ESP32
+
+AntonsMindstorms tiene una integración específica donde la LMS-ESP32 se conecta a HuskyLens por I2C y reenvía los datos al SPIKE via PUPRemote. Funciona con Pybricks directamente.
+
+---
+
+## 6. Configuración y entrenamiento
+
+### HuskyLens: menú on-screen (sin código)
+1. Seleccionar "Color Recognition" en menú
+2. Apuntar al objeto → mantener botón → color aprendido
+3. Guardar en SD card
+
+### OpenMV: IDE con Threshold Editor
+1. Conectar por USB → OpenMV IDE
+2. Tools → Machine Vision → Threshold Editor
+3. Ajustar umbrales LAB visualmente
+4. Copiar al script
+
+### ESP32-CAM: calibrar por WiFi
+1. Subir script de calibración a la ESP32
+2. Conectarse al web server desde el celular
+3. Ver la imagen en vivo y ajustar umbrales
+4. Los umbrales se guardan en SD o flash
+
+### Pixy2: PixyMon por USB
+1. Conectar → PixyMon → click en color → ajustar signature
 
 ---
 
 ## 7. Ubicación, montaje e iluminación
 
-### Dónde montar la cámara
+### Montaje recomendado
 
-```
-Vista lateral del robot:
+Frente del robot, inclinada ~30° hacia abajo. Ve objetos a 10-30cm y parcialmente el piso.
 
-  Cámara mirando hacia adelante-abajo (~30-45°)
-        ○───
-       /     \
-      /  FOV  \
-     /  ~60°   \
-══════════════════  Piso / objetos
-```
-
-| Posición | Ventajas | Desventajas |
-|----------|----------|-------------|
-| **Frente, mirando adelante** | Ve objetos a distancia | No ve el piso debajo |
-| **Frente, inclinada 30-45°** | Ve objetos Y piso cercano | Campo de visión mezclado |
-| **Arriba, mirando abajo** | Vista cenital del área | No ve objetos altos |
-| **Costado, mirando lateral** | Detecta objetos al pasar | Campo limitado |
-
-**Recomendación:** Frente del robot, inclinada ~30° hacia abajo. Esto permite ver objetos a 10-30cm de distancia y parcialmente el piso.
-
-### Altura de montaje
-
-| Altura desde piso | Qué ve a 20cm de distancia |
-|-------------------|----------------------------|
-| 5cm | Solo piso y objetos muy bajos |
-| 8-10cm | Objetos de 2-3cm de alto, piso cercano |
-| 12-15cm | Objetos estándar WRO (cubos LEGO) |
-| 18-20cm | Vista amplia pero lejos de objetos pequeños |
-
-### Iluminación
-
-**El enemigo #1 de la visión por cámara es la luz variable.**
+### Iluminación — el enemigo #1
 
 | Problema | Solución |
 |----------|----------|
-| Reflejos del tapete blanco | Inclinar cámara para evitar reflexión directa |
-| Sombras del propio robot | Montar cámara alta o con LEDs propios |
-| Luz de ventanas lateral | Pedir mesa alejada de ventanas |
-| Fluorescentes parpadean | Usar exposición fija (OpenMV) o promediar frames |
-| Diferentes salas en competencia | Calibrar en el lugar, guardar en SD |
+| Reflejos del tapete | Inclinar cámara para evitar reflexión especular |
+| Sombras del robot | Montar cámara alta o agregar LEDs |
+| Fluorescentes parpadean | Exposición fija, promediar frames |
+| Luz variable entre rondas | Calibrar in-situ, guardar en SD |
 
-**Truco avanzado (OpenMV):** Fijar exposición y balance de blancos para que la cámara no se auto-ajuste:
+**Truco OpenMV/ESP32:** Fijar exposición y balance de blancos:
 ```python
 sensor.set_auto_gain(False)
 sensor.set_auto_whitebal(False)
@@ -349,108 +259,62 @@ sensor.set_auto_exposure(False, exposure_us=15000)
 
 ## 8. Qué hacen los equipos ganadores
 
-### WRO Future Engineers (referencia)
+### WRO Future Engineers
+- **OpenMV H7** es la cámara más popular (recomendada en docs oficiales WRO FE)
+- SPIKE + OpenMV es combo oficial en la guía WRO FE Getting Started
+- Umbrales en espacio LAB, exposición fija, scripts <50ms/frame
 
-La categoría Future Engineers REQUIERE cámara. Los equipos top usan:
-- **OpenMV H7** es la cámara más popular (recomendada en la documentación oficial WRO FE)
-- SPIKE Prime + OpenMV es un combo recomendado en la guía oficial WRO FE Getting Started
-- Umbrales de color en espacio LAB (más robusto que RGB)
-- Exposición y balance de blancos fijos
-- Scripts optimizados para <50ms por frame
+### RoboCup Junior
+- Escudo físico contra luz, calibración in-situ obligatoria
+- Múltiples perfiles de umbrales (uno por condición de luz)
+- Redundancia: cámara + sensores como backup
 
-### RoboCup Junior Soccer
-
-Los equipos de RoboCup Junior Soccer Open usan cámaras para:
-- Detectar la pelota naranja infrarroja
-- Detectar arcos amarillo/azul
-- Lectura rápida (<20ms por ciclo)
-- Comunicación I2C o UART a alta velocidad con el controlador principal
-
-Buenas prácticas de RoboCup:
-- Escudo físico contra luz ambiental alrededor de la cámara
-- Calibración in-situ obligatoria
-- Múltiples umbrales guardados (uno por condición de luz)
-- Redundancia: cámara + sensores IR/color como backup
-
-### FIRST Robotics / FLL
-
-En FLL, las cámaras no están permitidas (solo sensores LEGO). Pero en FIRST Tech Challenge y FIRST Robotics:
-- Visión OpenCV con Raspberry Pi
-- Modelos pre-entrenados para detección de objetos específicos
-- Pipeline: captura → resize → filtro color → blob detection → decisión
+### Tendencia 2025-2026
+- Cada vez más equipos usan **ESP32 + cámara** por el costo y la versatilidad
+- WiFi debugging se está volviendo estándar en equipos competitivos
+- Modelos TF Lite pre-entrenados para clasificación de objetos WRO
 
 ---
 
-## 9. Estrategias para misiones WRO Junior con cámara
+## 9. Estrategias para misiones WRO con cámara
 
-### Caso 1: Clasificar objetos por color a distancia
+### Clasificar objetos a distancia (la ventaja clave)
+Sin cámara: acercarse, parar, leer a 8-16mm. Con cámara: ver color a 15-30cm mientras se mueve.
 
-**Sin cámara:** el robot tiene que acercarse a cada objeto, detenerse, y leer con el sensor de color a 8-16mm.
+### Seguimiento de línea anticipado
+La cámara ve la línea ADELANTE del robot → puede anticipar curvas.
 
-**Con cámara:** el robot ve el color del objeto a 15-30cm de distancia, MIENTRAS se mueve. Puede planificar la ruta antes de llegar.
+### Identificar formas o patrones
+Imposible con sensor de color. Cámara obligatoria.
 
-```python
-# Pseudocódigo: clasificar objeto a distancia
-cam_data = leer_camara()  # color_id, cx, cy, area
-
-if cam_data.color_id == 1:  # Rojo
-    # Ir directo a recoger, ya sé que es rojo
-    ir_a_objeto(cam_data.cx)
-elif cam_data.color_id == 2:  # Azul
-    # Ignorar o llevar a otra zona
-    esquivar_objeto()
-```
-
-### Caso 2: Seguimiento de línea con cámara
-
-**Ventaja:** la cámara ve la línea ADELANTE del robot, no debajo. Puede anticipar curvas.
-
-**Funciona bien con:** HuskyLens (line tracking built-in) o OpenMV (`find_lines()`).
-
-### Caso 3: Identificar patrones o formas
-
-Si la misión requiere distinguir formas (círculo vs cuadrado) o patrones, una cámara es la única opción. El sensor de color no puede hacer esto.
-
-### Caso 4: April Tags / QR codes
-
-Si la misión usa marcadores impresos, HuskyLens tiene reconocimiento de April Tags built-in. OpenMV puede leer QR codes y April Tags.
+### April Tags / QR codes
+HuskyLens tiene April Tags built-in. OpenMV/ESP32 pueden leer QR.
 
 ---
 
-## 10. Problemas comunes y soluciones
+## 10. Problemas comunes
 
-| Problema | Causa | Solución |
-|----------|-------|----------|
-| HuskyLens se apaga solo (brownout) | Insuficiente corriente desde SPIKE (3.3V) | Usar breakout board con buck 5V |
-| Cámara detecta colores distintos entre rondas | Luz ambiente cambió | Calibrar en el lugar, exposición fija |
-| Datos llegan lentos o corruptos | Baudrate incorrecto o ruido en cables | Verificar baudrate, cables cortos, blindados |
-| Pybricks no soporta UART nativo | Limitación de Pybricks API | Usar PUPRemote o MINDSTORMS firmware |
-| Cámara ve reflejos del tapete | Ángulo de cámara incorrecto | Inclinar para evitar reflexión especular |
-| Objeto fuera del campo de visión | Cámara mal orientada | Ajustar ángulo, usar lente gran angular |
-| Falsos positivos (detecta color donde no hay) | Umbrales muy amplios | Ajustar umbrales más estrictos |
-| Demora en procesamiento (>100ms) | Resolución muy alta o muchos blobs | Bajar resolución, limitar ROI |
+| Problema | Solución |
+|----------|----------|
+| HuskyLens brownout | LMS-ESP32 con buck 5V |
+| Colores cambian entre rondas | Calibrar in-situ, exposición fija |
+| Datos corruptos | Cables cortos, baudrate correcto |
+| Pybricks no soporta UART | Usar PUPRemote via LMS-ESP32 |
+| Reflejos del tapete | Inclinar cámara |
+| Procesamiento lento | Bajar resolución, limitar ROI |
 
-## Antes de decidir si usar cámara
+## Preguntas clave antes de agregar cámara
 
-Preguntas clave para el equipo:
-
-1. **¿La misión 2026 requiere distinguir colores que el sensor LEGO no puede?** Si el sensor de color alcanza, no complicar con cámara.
-2. **¿Hay objetos que distinguir a distancia?** Si sí, la cámara es la única opción.
-3. **¿Hay formas o patrones que identificar?** Cámara obligatoria.
-4. **¿El equipo tiene tiempo para aprender a usar la cámara?** Al menos 2-3 semanas de práctica.
-5. **¿Tienen el hardware (breakout board, cables)?** Presupuesto ~$80-120 USD total.
-
-## Plan de acción para IITA Junior
-
-1. **Semana 1-2:** Conseguir HuskyLens + breakout board. Probar conexión básica.
-2. **Semana 3-4:** Aprender colores de los objetos WRO 2026. Probar detección.
-3. **Semana 5-6:** Integrar con el programa de misión. Probar en el tapete real.
-4. **Si necesitan más:** Migrar a OpenMV con scripts custom.
+1. ¿El sensor de color LEGO alcanza? Si sí, no complicar.
+2. ¿Hay objetos que distinguir a distancia? Cámara necesaria.
+3. ¿Hay formas/patrones? Cámara obligatoria.
+4. ¿Tienen 2-3 semanas para aprender? Mínimo necesario.
+5. ¿Presupuesto? ESP32-CAM+LMS-ESP32 ~$50, HuskyLens+LMS-ESP32 ~$95, OpenMV ~$85-105.
 
 ## Recursos
 
-- WRO FE Getting Started (SPIKE + OpenMV): https://world-robot-olympiad-association.github.io/future-engineers-gs/
-- AntonsMindstorms HuskyLens + SPIKE: antonsmindstorms.com
+- LMS-ESP32 board + PUPRemote: antonsmindstorms.com
+- WRO FE Getting Started (SPIKE + OpenMV): world-robot-olympiad-association.github.io/future-engineers-gs/
 - OpenMV IDE: openmv.io
-- Pixy2 docs: pixycam.com/pixy2
-- WRO 2026 General Rules: wro-association.org
+- ESP32-CAM MicroPython: docs.micropython.org
+- Pybricks PUPRemote: github.com/antonvh/PUPRemote
