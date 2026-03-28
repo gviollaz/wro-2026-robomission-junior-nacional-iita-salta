@@ -1,10 +1,8 @@
-# WRO RoboMission Junior 2026 "Heritage Heroes" - Documentation (EN)
+# WRO RoboMission Junior 2026 "Heritage Heroes" — Documentation (EN)
 
-## Index
+> **Note:** Primary documentation is maintained in Spanish. See **[docs/es/index.md](../es/index.md)** for the complete index.
 
-- [Competition](competition/README.md) - WRO rules, scoring, randomization
-- [Architecture](architecture/README.md) - Robot design overview
-- [Software](software/README.md) - Pybricks Python, strategies, sensors
-- [Hardware](hardware/README.md) - LEGO build, arm, gripper
-- [Onboarding](onboarding/README.md) - Guide for new members
-- [Operations](operations/README.md) - Logistics, competition checklist
+## Quick links
+
+- [Competition rules](competition/README.md)
+- [Full documentation (ES)](../es/index.md)
