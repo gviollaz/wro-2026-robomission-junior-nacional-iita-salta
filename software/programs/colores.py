@@ -187,6 +187,38 @@ PESO_BRILLO = 0.2
 # negros equivocados en vez de dudas.
 TOLERANCIA_BRILLO = 0.8
 
+# ---------------------------------------------------------------------------
+# PERILLA 4: MARGEN_MINIMO  --  por cuanto tiene que ganar el ganador
+# ---------------------------------------------------------------------------
+# Si el primero le gana al segundo por menos que esto, se contesta DUDA en vez
+# del ganador. Es el seguro contra el error mas caro de todos: contestar un
+# color equivocado CON CONFIANZA.
+#
+# [VERIFICACION ADVERSARIAL 2026-08-23] Sin esto, verde y azul se intercambian
+# sin pasar nunca por duda: en el punto de empate entre los dos, el error de
+# color es 13.88 contra verde y 13.72 contra azul, y el limite de aceptacion es
+# 20, asi que LOS DOS aceptan. Un corrimiento sistematico de tono convierte un
+# verde en azul, aceptado, sin ninguna senial. El robot lo deposita mal y nadie
+# se entera hasta ver el puntaje.
+#
+# CUANTO PONER. El costo cae casi todo sobre el NEGRO, porque es el que gana por
+# menos (3.63 en su propio centro, contra 72.6 del amarillo): su VENTAJA de -6 se
+# lo come a proposito. Medido sobre esta tabla, rango de brillo en el que cada
+# color se sigue detectando, y ancho del aviso entre verde y azul:
+#
+#   margen | negro     | los otros | aviso verde/azul
+#   -------+-----------+-----------+------------------
+#      0   | 40-180%   | 20-180%   |  0%   <- el agujero: se intercambian sin avisar
+#      1   | 60-180%   | 25-180%   |  4%   <- elegido
+#      1.5 | 70-180%   | 20-175%   |  6%
+#      2   | 80-180%   | 25-175%   |  8%
+#      3   | 95-180%   | 30-175%   | 10%
+#
+# Con 2 el negro pierde la mitad de su rango util. Con 1 conserva 60-180% y el
+# aviso ya existe donde antes no habia ninguno.
+#   0 = apagado (el ganador contesta siempre, aunque gane por un pelo)
+MARGEN_MINIMO = 1
+
 # Debajo de este brillo se considera que no hay objeto adelante.
 # [MEDIDO EN BANCO 2026-08-23] Con la tabla actual: "nada" da brillo 0 exacto,
 # sin ninguna variacion en 40 lecturas, y el negro da 14. El limite no va en el
@@ -344,6 +376,10 @@ def detectar_color(muestras=4):
     if r["codigo"] == 0:
         return 0
     if not r["aceptado"]:
+        return DUDA
+    if r["ventaja"] < MARGEN_MINIMO:
+        # gano por muy poco: entre dos colores parecidos, contestar el que
+        # salio primero por un pelo es tirar una moneda con cara de certeza
         return DUDA
     return r["codigo"]
 

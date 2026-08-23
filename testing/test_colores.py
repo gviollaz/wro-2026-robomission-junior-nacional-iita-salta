@@ -255,6 +255,31 @@ for pct in (60, 80, 100, 120, 140):
     check("el negro real sigue siendo negro al " + str(pct) + "%",
           got == "negro", "dio " + got)
 
+print("=== 6d. NADIE GANA POR UN PELO: la regla del margen minimo ===")
+# [VERIFICACION ADVERSARIAL 2026-08-23] Sin margen minimo, verde y azul se
+# intercambiaban ACEPTADOS, sin pasar nunca por duda: en el empate el error de
+# color es 13.88 contra verde y 13.72 contra azul, y los dos entran en el limite
+# de 20. Un corrimiento de tono convertia un verde en azul con toda confianza.
+restaurar_ventajas()
+verde = [c for c in COLORES if c[1] == "verde"][0]
+azul = [c for c in COLORES if c[1] == "azul"][0]
+banda = 0
+for i in range(101):
+    t = i / 100.0
+    p = (verde[2]+(azul[2]-verde[2])*t, verde[3]+(azul[3]-verde[3])*t,
+         verde[4]+(azul[4]-verde[4])*t)
+    if leer(p) == DUDA:
+        banda += 1
+check("entre verde y azul hay una banda de duda (no un salto seco)",
+      banda >= 3, "la banda mide " + str(banda) + "% del trayecto")
+# y cada color calibrado tiene que seguir ganando en su propio centro
+for cod, nombre, x, y, z, r in COLORES:
+    if cod == 0:
+        continue
+    check(nombre + " en su centro exacto se detecta como " + nombre,
+          ns["nombre_de"](leer((float(x), float(y), float(z)))) == nombre,
+          "dio " + ns["nombre_de"](leer((float(x), float(y), float(z)))))
+
 print("=== 7. la compuerta de brillo separa nada de los colores ===")
 restaurar_ventajas()
 modo("color")
