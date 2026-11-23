@@ -3,10 +3,11 @@
 # ============================================================================
 #
 # Autor:       Gustavo Viollaz
-# Herramienta: Claude Opus 5
-# Fecha:       2026-08-23 17:05
-# Rev:         v1
-# Hardware:    LEGO SPIKE Prime + sensor de color estandar en el PUERTO B
+# Herramienta: Claude Opus 5 (v1) / Claude Opus 5.5 (v2)
+# Fecha:       2026-11-23 21:40
+# Rev:         v2
+# Hardware:    LEGO SPIKE Prime + sensor de color estandar (puerto: el que
+#              diga colores.py; en el robot, F)
 #
 # DESCRIPCION:
 #   Corre en un lazo infinito: lee el sensor y muestra en la pantalla del hub
@@ -21,12 +22,12 @@
 #  Subir al hub ESTE archivo junto con colores.py (los dos en la raiz del
 #  proyecto de Pybricks Code) y ejecutar este. Se corta con el boton de stop.
 #
-#  LO QUE MUESTRA LA PANTALLA
+#  LO QUE MUESTRA LA PANTALLA  [IA 2026-11-23: letras segun CODIGOS]
 #  --------------------------
-#      A = amarillo        N = negro
-#      V = verde           R = rojo
-#      Z = aZul            - = nada (no hay objeto adelante)
-#                          ? = duda (hay algo pero no lo reconoce)
+#      A = amarillo        N = negro          R = rojo
+#      B = blanco          Z = aZul           V = verde
+#      - = nada (no hay objeto adelante)
+#      ? = duda (hay algo pero no lo reconoce)
 #
 #  El guion y el signo de pregunta NO son lo mismo, y esa diferencia es el
 #  punto de toda la prueba:
@@ -50,13 +51,16 @@ from colores import detectar_color, detectar_estable, nombre_de, explicar, DUDA
 hub = PrimeHub()
 
 # Una letra por codigo. Los codigos salen de la tabla COLORES de colores.py.
+# [IA 2026-11-23] Desde que el robot usa la tabla de negro/azul/blanco/
+# amarillo, el 2 es BLANCO (antes era verde y esta pantalla mostraba "V").
 LETRAS = {
     0: "-",        # nada
     1: "A",        # amarillo
-    2: "V",        # verde
+    2: "B",        # blanco
     3: "Z",        # azul
     4: "N",        # negro
     5: "R",        # rojo
+    6: "V",        # verde
     DUDA: "?",     # vio algo pero no lo reconoce
 }
 
@@ -69,20 +73,25 @@ ANTIRREBOTE = True
 MUESTRAS = 3          # lecturas que promedia cada deteccion
 ESPERA_MS = 100       # pausa entre vueltas del lazo
 
+# Que conjunto de colores.py se prueba: "naba" (negro, azul, blanco,
+# amarillo) o "rva" (rojo, verde, amarillo). None = el por defecto ("naba").
+PERFIL = None
+
 
 def main():
     print("=== PRUEBA DE COLORES EN VIVO ===")
-    print("A=amarillo  V=verde  Z=azul  N=negro  R=rojo  -=nada  ?=duda")
+    print("A=amarillo B=blanco Z=azul N=negro R=rojo V=verde -=nada ?=duda")
     print("modo:", "antirrebote (2 de 3)" if ANTIRREBOTE else "lectura directa")
+    print("conjunto:", PERFIL if PERFIL else "el por defecto (naba)")
     print("cortar con el boton de stop")
     print("")
 
     anterior = None
     while True:
         if ANTIRREBOTE:
-            codigo = detectar_estable(MUESTRAS)
+            codigo = detectar_estable(MUESTRAS, PERFIL)
         else:
-            codigo = detectar_color(MUESTRAS)
+            codigo = detectar_color(MUESTRAS, PERFIL)
 
         hub.display.char(LETRAS.get(codigo, "?"))
 
@@ -93,7 +102,7 @@ def main():
             # [IA 2026-08-23] Con ANTIRREBOTE, explicar() describe la ULTIMA de
             # las 2 o 3 lecturas del voto, que no siempre es la que gano. Para
             # mirar el duelo exacto de una lectura, poner ANTIRREBOTE = False.
-            explicar()
+            explicar(PERFIL)
             anterior = codigo
 
         wait(ESPERA_MS)
