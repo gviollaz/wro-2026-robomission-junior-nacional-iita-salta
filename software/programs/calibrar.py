@@ -3,16 +3,16 @@
 # ============================================================================
 #
 # Autor:       Gustavo Viollaz
-# Herramienta: Claude Opus 5
-# Fecha:       2026-08-23 16:46
-# Rev:         v2
+# Herramienta: Claude Opus 5 (v2) / Claude Opus 5.5 (v3)
+# Fecha:       2026-11-23 21:30
+# Rev:         v3
 # Hardware:    LEGO SPIKE Prime + sensor de color estandar (Pybricks)
 #
 # DESCRIPCION:
-#   Mide el centro y el ruido de cada color y emite la fila lista para pegar en
-#   la tabla COLORES de colores.py. Mide sobre VARIAS presentaciones del objeto,
-#   no sobre una sola, porque lo que mueve la lectura en cancha es volver a
-#   apoyar la pieza, no el temblor del sensor quieto.
+#   Mide el centro y el ruido de cada color de UN conjunto (perfil) y emite la
+#   tabla de ese conjunto lista para pegar en colores.py. Mide sobre VARIAS
+#   presentaciones del objeto, no sobre una sola, porque lo que mueve la
+#   lectura en cancha es volver a apoyar la pieza, no el temblor del sensor.
 #
 # ============================================================================
 #
@@ -27,8 +27,18 @@
 #     LA PANTALLA DEL HUB GUIA: muestra el numero de toma que espera (1,2,3,4),
 #     un guion mientras mide (no mover) y una K cuando termino ese color.
 #     Suena un pitido al empezar cada toma y otro mas agudo al terminarla.
-#  4. Copiar la fila que imprime y pegarla en COLORES de colores.py.
-#  5. Al final correr chequear() y mirar los avisos.
+#  4. Copiar la tabla que imprime al final (TABLA_RVA o TABLA_NABA, con su
+#     linea FIRMWARE_...) y reemplazar la del mismo nombre en colores.py.
+#  5. Volver a correr este programa y mirar los avisos de chequear() del
+#     principio.
+#
+#  v3: UN CONJUNTO POR VEZ  [IA 2026-11-23]
+#  ---------------------------------------
+#  Cada conjunto de colores tiene su propia tabla, y se calibra por separado,
+#  presentando las piezas DE ESE CONJUNTO: el amarillo de "naba" y el de "rva"
+#  son dos mediciones distintas. Se elige con la constante PERFIL de abajo.
+#  "nada" se mide en los dos: sirve para controlar que la compuerta de brillo
+#  (V_MINIMO) siga separando "no hay pieza" de la pieza mas oscura.
 #
 # ============================================================================
 
@@ -38,12 +48,16 @@ from pybricks.tools import wait
 
 # Se importa de colores.py para que la matematica viva en UN solo lugar:
 # si el cono cambia alla, la calibracion cambia con el.
-from colores import sensor, _xyz, COLORES, RUIDO_EN_RADIOS, chequear
+from colores import sensor, _xyz, RUIDO_EN_RADIOS, chequear
+from colores import PERFILES, CODIGOS
 
 hub = PrimeHub()
 
-LETRAS = {"amarillo": "A", "verde": "V", "azul": "Z",
-          "negro": "N", "rojo": "R", "nada": "-"}
+# >>> EDITAR: que conjunto se calibra: "rva" o "naba" <<<
+PERFIL = "rva"
+
+LETRAS = {"amarillo": "A", "verde": "V", "azul": "Z", "negro": "N",
+          "rojo": "R", "blanco": "B", "nada": "-"}
 
 PRESENTACIONES = 4    # cuantas veces se apoya el objeto de nuevo
 MUESTRAS = 10         # cuantas lecturas por presentacion
@@ -182,38 +196,68 @@ def calibrar_un_color(codigo, nombre):
           "(normal con el objeto quieto)")
 
     # Lo que SI es un problema y no se veia: el sensor saturado.
-    if centro[2] >= 95:
+    # [IA 2026-11-23] Lo que se arruina al saturar es el TONO. Un color sin
+    # tono (el blanco: croma casi cero) al tope no pierde nada que se use, y
+    # avisarlo como peligro seria una falsa alarma cada vez que se calibra.
+    croma = (centro[0] ** 2 + centro[1] ** 2) ** 0.5
+    if centro[2] >= 95 and croma >= 10:
         print("  >> PELIGRO: brillo", round(centro[2]), "sobre un maximo de 100.")
         print("     El sensor esta al TOPE. Si la pieza se acerca un poco mas,")
         print("     la lectura no puede subir y el tono se distorsiona porque")
         print("     los canales RGB tambien se clipean. Alejar el sensor y")
         print("     recalibrar TODOS los colores, no solo este.")
+    elif centro[2] >= 95:
+        print("  ojo: brillo", round(centro[2]), "de 100, pero es un color sin",
+              "tono: al tope no pierde nada. Normal en el blanco.")
 
     hub.speaker.beep(1400, 150)      # color terminado
     hub.display.char("K")
-    fila = ("    (" + str(codigo) + ', "' + nombre + '", ' +
-            str(round(centro[0])) + ", " + str(round(centro[1])) + ", " +
-            str(round(centro[2])) + ", " + str(radio) + "),")
-    print("  PEGAR ESTA LINEA EN COLORES:")
+    fila = fila_texto(codigo, nombre, round(centro[0]), round(centro[1]),
+                      round(centro[2]), radio)
+    print("  fila de", nombre + ":")
     print(fila)
     return fila
 
 
+def fila_texto(codigo, nombre, x, y, z, radio):
+    """Una fila de la tabla, escrita tal como se pega en colores.py."""
+    return ("    (" + str(codigo) + ', "' + nombre + '", ' + str(x) + ", " +
+            str(y) + ", " + str(z) + ", " + str(radio) + "),")
+
+
+def firmware():
+    """Version del firmware del hub, para anotarla junto con la tabla."""
+    try:
+        from pybricks import version
+        return version[1]
+    except ImportError:
+        return "?"
+
+
 def main():
-    print("=== CALIBRACION DE COLORES ===")
-    print("Tabla que hay ahora:")
-    chequear()
+    if PERFIL not in PERFILES:
+        raise ValueError("PERFIL desconocido: " + str(PERFIL) +
+                         " (los que hay estan en PERFILES de colores.py)")
+    colores = PERFILES[PERFIL]["colores"]
+    nombre_tabla = "TABLA_" + PERFIL.upper()
+
+    print("=== CALIBRACION DEL CONJUNTO", PERFIL, "===")
+    print("colores:", ", ".join(colores))
+    print("firmware del hub:", firmware())
+    print("Como esta ahora:")
+    chequear(PERFIL)
 
     filas = []
-    for codigo, nombre, _x, _y, _z, _r in COLORES:
-        filas.append(calibrar_un_color(codigo, nombre))
+    for nombre in colores:
+        filas.append(calibrar_un_color(CODIGOS[nombre], nombre))
 
     print("")
-    print("=== TABLA COMPLETA - reemplazar COLORES en colores.py ===")
-    print("COLORES = (")
+    print("=== REEMPLAZAR", nombre_tabla, "Y SU FIRMWARE EN colores.py ===")
+    print(nombre_tabla + " = (")
     for f in filas:
         print(f)
     print(")")
+    print("FIRMWARE_" + PERFIL.upper() + ' = "' + firmware() + '"')
     print("")
     print("Despues de pegarla, volver a correr este programa y mirar los avisos")
     print("de chequear() al principio.")

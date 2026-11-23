@@ -3,10 +3,11 @@
 # ============================================================================
 #
 # Autor:       Gustavo Viollaz
-# Herramienta: Claude Opus 5
-# Fecha:       2026-08-23 19:20
-# Rev:         v1
-# Hardware:    LEGO SPIKE Prime + sensor de color estandar en el PUERTO B
+# Herramienta: Claude Opus 5 (v1) / Claude Opus 5.5 (v2)
+# Fecha:       2026-11-23 21:40
+# Rev:         v2
+# Hardware:    LEGO SPIKE Prime + sensor de color estandar (puerto: el que
+#              diga colores.py; en el robot, F)
 #
 # DESCRIPCION:
 #   Lazo infinito para probar el detector sobre la cancha real: muestra una
@@ -22,6 +23,7 @@
 #  por color es mejor que una voz, porque se reconoce mas rapido y no tapa lo
 #  que esta diciendo el equipo. La regla es: MAS AGUDO = MAS CLARO.
 #
+#      B  blanco     dos pitidos muy agudos
 #      A  amarillo   un pitido muy agudo
 #      R  rojo       dos pitidos agudos
 #      V  verde      un pitido medio
@@ -58,11 +60,14 @@ hub = PrimeHub()
 
 # letra que se muestra y sonido que se toca, por codigo de color
 # (frecuencia en Hz, duracion en ms) repetido las veces que haga falta
-LETRAS = {0: "-", 1: "A", 2: "V", 3: "Z", 4: "N", 5: "R", DUDA: "?"}
+# [IA 2026-11-23] Codigos segun CODIGOS de colores.py: el 2 es BLANCO desde
+# que el robot usa la tabla de negro/azul/blanco/amarillo; verde paso al 6.
+LETRAS = {0: "-", 1: "A", 2: "B", 3: "Z", 4: "N", 5: "R", 6: "V", DUDA: "?"}
 SONIDOS = {
+    2: ((1500, 60), (1500, 60)),          # blanco: doble muy agudo
     1: ((1200, 120),),                    # amarillo: agudo
     5: ((1000, 90), (1000, 90)),          # rojo: doble agudo
-    2: ((700, 120),),                     # verde: medio
+    6: ((700, 120),),                     # verde: medio
     3: ((450, 140),),                     # azul: grave
     4: ((250, 90), (250, 90)),            # negro: doble muy grave
     0: ((160, 40),),                      # nada: tic corto
@@ -72,6 +77,9 @@ SONIDOS = {
 MUESTRAS = 3          # lecturas que promedia cada deteccion
 ESPERA_MS = 60        # pausa entre vueltas del lazo
 
+# Que conjunto de colores.py se escucha: "naba" o "rva". None = "naba".
+PERFIL = None
+
 
 def cantar(codigo):
     for frecuencia, duracion in SONIDOS.get(codigo, ((520, 70), (390, 70))):
@@ -80,12 +88,13 @@ def cantar(codigo):
 
 def main():
     print("=== PRUEBA DE CANCHA ===")
-    print("A=amarillo R=rojo V=verde Z=azul N=negro -=nada ?=duda")
+    print("B=blanco A=amarillo R=rojo V=verde Z=azul N=negro -=nada ?=duda")
+    print("conjunto:", PERFIL if PERFIL else "el por defecto (naba)")
     print("Se corta con el boton central.")
 
     anterior = None
     while True:
-        codigo = detectar_estable(MUESTRAS)
+        codigo = detectar_estable(MUESTRAS, PERFIL)
         hub.display.char(LETRAS.get(codigo, "?"))
         if codigo != anterior:
             cantar(codigo)

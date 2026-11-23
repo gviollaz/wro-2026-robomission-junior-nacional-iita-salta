@@ -3,15 +3,28 @@
 # ============================================================================
 #
 # Autor:       Gustavo Viollaz
-# Herramienta: Claude Opus 5
-# Fecha:       2026-08-23 17:30
-# Rev:         v2
+# Herramienta: Claude Opus 5 (v2) / Claude Opus 5.5 (v3)
+# Fecha:       2026-11-23 21:50
+# Rev:         v3
 # Hardware:    ninguno - corre en la PC con Python 3
 #
 # DESCRIPCION:
 #   Carga software/programs/colores.py sacandole los imports de Pybricks y
 #   prueba la matematica del clasificador con puntos inventados, en los dos
 #   modos. Se corre con "python testing/test_colores.py" desde la raiz.
+#
+# ============================================================================
+#
+#  SOBRE QUE TABLA CORREN  [IA 2026-11-23]
+#  ---------------------------------------
+#  Desde v3, colores.py tiene las tablas del robot de la final (perfiles
+#  "naba" y "rva"). Estos tests prueban la MATEMATICA del detector y siguen
+#  corriendo sobre la tabla de artefactos de la nacional (medida en banco el
+#  2026-08-23), porque es la que tiene los casos que se estudiaron aca: verde
+#  y azul pegados, el rojo en la costura 0/360, el iman del negro. Se instala
+#  como un perfil mas ("historica") y se vuelve el perfil por defecto SOLO
+#  adentro de estos tests. Los perfiles reales se prueban en
+#  testing/test_colores_tareas.py.
 #
 # ============================================================================
 #
@@ -49,7 +62,31 @@ def cargar():
         "sensor": None,
     }
     exec("\n".join(limpio), ns)
+    # la tabla de la nacional, con los codigos renumerados a CODIGOS (el verde
+    # paso del 2 al 6) porque nombre_de() traduce con CODIGOS
+    ns["PERFILES"]["historica"] = {
+        "colores": tuple(c[1] for c in TABLA_HISTORICA),
+        "tabla": TABLA_HISTORICA,
+        "ventaja": VENTAJA_HISTORICA,
+        "margen": 1,
+    }
+    ns["PERFIL_POR_DEFECTO"] = "historica"
+    ns["COLORES"] = TABLA_HISTORICA
+    ns["VENTAJA"] = VENTAJA_HISTORICA
     return ns
+
+
+# [MEDIDO EN BANCO 2026-08-23] La tabla y las ventajas de colores.py v2.
+TABLA_HISTORICA = (
+    (1, "amarillo",  43,  54, 99, 8),
+    (6, "verde",    -21,  10, 34, 8),
+    (3, "azul",     -28, -20, 39, 8),
+    (4, "negro",     -1,  -1, 14, 8),
+    (5, "rojo",      40,  -6, 45, 8),
+    (0, "nada",       0,   0,  0, 8),
+)
+VENTAJA_HISTORICA = {"amarillo": 0, "verde": 0, "azul": 0, "negro": -6,
+                     "rojo": 0, "nada": 0}
 
 
 def check(nombre, condicion, detalle=""):
@@ -101,17 +138,24 @@ for cod, n, x, y, z, r in COLORES:
     HSV[n] = (math.degrees(math.atan2(y, x)) % 360, min(100.0, 100.0*rad/z), z)
 
 
-print("=== 1. el docstring no puede divergir de la tabla ===")
+print("=== 1. los codigos no pueden divergir: docstring, CODIGOS y tablas ===")
 # Este es EL test que importa: el bug que rompio la version anterior fue un
 # docstring que decia 1=rojo cuando la tabla decia 1=amarillo. Los codigos
 # quedaban corridos y el robot depositaba todo en la zona equivocada, sin
 # ningun sintoma visible en el sensor.
+# [IA 2026-11-23] Desde v3 los codigos salen de CODIGOS (uno solo para todos
+# los perfiles), y cada tabla real tiene que usar esos mismos numeros.
 doc = ns["detectar_color"].__doc__.split("\n")[0]
-esperado = " | ".join(str(c[0]) + " " + c[1] for c in
-                      sorted(COLORES, key=lambda c: c[0])) + " | -1 duda"
-check("primera linea del docstring == tabla COLORES",
+esperado = " | ".join(str(c) + " " + n for n, c in
+                      sorted(ns["CODIGOS"].items(), key=lambda kv: kv[1])) + " | -1 duda"
+check("primera linea del docstring == CODIGOS",
       doc.strip() == esperado,
-      "docstring dice [" + doc.strip() + "] y la tabla pide [" + esperado + "]")
+      "docstring dice [" + doc.strip() + "] y CODIGOS pide [" + esperado + "]")
+for _perfil_nombre, _p in ns["PERFILES"].items():
+    for _c in _p["tabla"]:
+        check("perfil " + _perfil_nombre + ": " + _c[1] + " tiene el codigo de CODIGOS",
+              ns["CODIGOS"].get(_c[1]) == _c[0],
+              "tabla " + str(_c[0]) + " vs CODIGOS " + str(ns["CODIGOS"].get(_c[1])))
 
 print("=== 2. modo esfera: identico al detector anterior ===")
 # Migracion segura: la version anterior hacia argmin de la distancia AL
@@ -144,7 +188,12 @@ check("puntos al azar (sin la zona de 'nada'): mismo ganador que el viejo",
       str(discrepancias) + " discrepancias sobre " + str(comparados))
 print("   comparados:", comparados, "| saltados por caer en 'nada':", saltados)
 
-print("=== 3. la VENTAJA corre la frontera la mitad de la diferencia ===")
+print("=== 3. con PESO_BRILLO=1 la VENTAJA corre la frontera la mitad de la diferencia ===")
+# [IA 2026-11-23] Este test corria en modo esfera porque lo dejaba puesto el
+# test 2, sin decirlo. Ahora lo pide explicito: con el PESO_BRILLO real (0.2)
+# el corrimiento NO es la mitad (ver el comentario de VENTAJA en colores.py y
+# el test P6 de test_colores_tareas.py).
+modo("esfera")
 def frontera(nombre_a, nombre_b):
     a = [c for c in COLORES if c[1] == nombre_a][0]
     b = [c for c in COLORES if c[1] == nombre_b][0]
